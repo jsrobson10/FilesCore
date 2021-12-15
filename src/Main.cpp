@@ -21,10 +21,10 @@ static void display_hex(const uint8_t* data, size_t len)
 
 int main()
 {
-	HashMap db_root("database/db_", "", 256);
+	HashMap db_root("database/db_", "", 256, 16777216);
 	HashMap db(db_root, "fib_test_0");
 
-	for(uint64_t i = 0; i < 92; i++)
+	/*for(uint64_t i = 0; i < 92; i++)
 	{
 		uint8_t i_c[8];
 		Util::set_net_ul(i_c, i);
@@ -39,9 +39,9 @@ int main()
 		loc.close();
 
 		std::cout << i << ": " << Util::get_net_ul(v_c) << std::endl;
-	}
+	}*/
 
-	/*uint64_t a = 1;
+	uint64_t a = 1;
 	uint64_t b = 0;
 	uint64_t c = 0;
 
@@ -66,6 +66,6 @@ int main()
 		loc.create(8);
 		loc.write(v_c, 8);
 		loc.close();
-	}*/
+	}
 }
 

@@ -148,6 +148,7 @@ HashMap::Location::~Location()
 	if(locked)
 	{
 		map->data[file_id].mtx.unlock();
+		map->data[file_id].file.flush();
 	}
 }
 
@@ -179,6 +180,7 @@ void HashMap::Location::create(uint64_t len)
 		uint8_t pointer_cur_c[8];
 		uint8_t pointer_table_c[8];
 		uint8_t pointer_next_c[8];
+		uint8_t len_c[8];
 
 		uint64_t pointer_table = data->end;
 		uint64_t pointer_next = data->end + TABLE_SIZE;
@@ -204,7 +206,7 @@ void HashMap::Location::create(uint64_t len)
 		if(len > 0)
 		{
 			data->file.seekg(len - 1, std::ios::cur);
-			data->file.write("\0", 1);
+			data->file.write("\1", 1);
 		}
 
 		// get the current table entry hash value
@@ -218,6 +220,9 @@ void HashMap::Location::create(uint64_t len)
 		int jump_next = (hash[hash_index] * 256 + hash[hash_index + 1]) * 9;
 
 		table_tag = 2;
+		
+		data->end += TABLE_SIZE + len + 32;
+		Util::set_net_ul(len_c, data->end);
 
 		// set both table entries
 		data->file.seekg(pointer_table + jump_cur, std::ios::beg);
@@ -226,9 +231,22 @@ void HashMap::Location::create(uint64_t len)
 		data->file.seekg(pointer_table + jump_next, std::ios::beg);
 		data->file.write((char*)&table_tag, 1);
 		data->file.write((char*)pointer_next_c, 8);
+		data->file.seekg(0, std::ios::beg);
+		data->file.write((char*)len_c, 8);
+		
+		// make sure to allocate space in blocks
+		if(data->end > data->file_end && map->alloc_size != 0)
+		{
+			data->file_end = data->end / map->alloc_size * map->alloc_size + map->alloc_size;
+			data->file.seekg(data->file_end - 1, std::ios::beg);
+			data->file.write("\1", 1);
+			data->at = data->file_end;
+		}
 
-		data->at = pointer_table + jump_next + 9;
-		data->end += TABLE_SIZE + len + 32;
+		else
+		{
+			data->at = 8;
+		}
 
 		content_pos = pointer_next + 32;
 		seek_pos = content_pos;
@@ -241,6 +259,10 @@ void HashMap::Location::create(uint64_t len)
 	{
 		uint64_t pointer_next = data->end;
 		uint8_t pointer_next_c[8];
+		uint8_t len_c[8];
+		
+		data->end += len + 32;
+		Util::set_net_ul(len_c, data->end);
 
 		Util::set_net_ul(pointer_next_c, pointer_next);
 
@@ -252,16 +274,22 @@ void HashMap::Location::create(uint64_t len)
 		data->file.write((char*)pointer_next_c, 8);
 		data->file.seekg(pointer_next, std::ios::beg);
 		data->file.write((char*)hash, 32);
+		data->file.seekg(0, std::ios::beg);
+		data->file.write((char*)len_c, 8);
 		
-		// allocate the data and fill it with zeros
-		if(len > 0)
+		// make sure to allocate space in blocks
+		if(data->end > data->file_end && map->alloc_size != 0)
 		{
-			data->file.seekg(len - 1, std::ios::cur);
-			data->file.write("\0", 1);
+			data->file_end = data->end / map->alloc_size * map->alloc_size + map->alloc_size;
+			data->file.seekg(data->file_end - 1, std::ios::beg);
+			data->file.write("\1", 1);
+			data->at = data->file_end;
 		}
 
-		data->end += len + 32;
-		data->at = data->end;
+		else
+		{
+			data->at = 8;
+		}
 		
 		content_pos = pointer_next + 32;
 		seek_pos = content_pos;
@@ -274,6 +302,7 @@ void HashMap::Location::close()
 	if(locked)
 	{
 		map->data[file_id].mtx.unlock();
+		map->data[file_id].file.flush();
 		locked = false;
 	}
 }
@@ -357,12 +386,13 @@ uint64_t HashMap::Location::get_pos()
 	return seek_pos - content_pos;
 }
 
-HashMap::HashMap(std::string path_1, std::string path_2, uint32_t files) : HashMap(path_1, path_2, files, false) {}
+HashMap::HashMap(std::string path_1, std::string path_2, uint32_t files, uint64_t alloc_size) : HashMap(path_1, path_2, files, alloc_size, false) {}
 
-HashMap::HashMap(std::string path_1, std::string path_2, uint32_t files, bool create_new)
+HashMap::HashMap(std::string path_1, std::string path_2, uint32_t files, uint64_t alloc_size, bool create_new)
 {
 	this->data = new Data[files];
 	this->uses = new std::atomic<int>(1);
+	this->alloc_size = alloc_size;
 	this->files = files;
 
 	if(!create_new)
@@ -418,13 +448,25 @@ HashMap::HashMap(std::string path_1, std::string path_2, uint32_t files, bool cr
 		file.write((char*)tag, 32);
 		file.close();
 
+		uint8_t file_size_c[8];
+		Util::set_net_ul(file_size_c, TABLE_SIZE + 8);
+
 		for(int i = 0; i < files; i++)
 		{
 			Data* d = &data[i];
 
 			std::string path = path_1 + format_uint(i) + path_2;
 			std::fstream file(path, std::ios::binary | std::ios::out);
+			file.write((char*)file_size_c, 8);
 			create_table(file);
+			
+			// make the database file chunk the right size if its not
+			if(alloc_size > TABLE_SIZE + 8)
+			{
+				file.seekg(alloc_size - 1, std::ios::beg);
+				file.write("\1", 1);
+			}
+			
 			file.close();
 
 			d->at = 0;
@@ -442,10 +484,14 @@ HashMap::HashMap(std::string path_1, std::string path_2, uint32_t files, bool cr
 	for(int i = 0; i < files; i++)
 	{
 		Data* d = &data[i];
+		uint8_t end_c[8];
 
+		d->file.seekg(0, std::ios::beg);
+		d->file.read((char*)end_c, 8);
+		d->end = Util::get_net_ul(end_c);
 		d->file.seekg(0, std::ios::end);
-		d->at = d->file.tellg();
-		d->end = d->at;
+		d->file_end = d->file.tellg();
+		d->at = d->file_end;
 	}
 }
 
@@ -454,6 +500,7 @@ HashMap::HashMap(const HashMap& other, const char* database)
 	data = other.data;
 	uses = other.uses;
 	files = other.files;
+	alloc_size = other.alloc_size;
 
 	// do this to remember how many copies of this
 	// object there are so the data can be automatically

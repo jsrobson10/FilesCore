@@ -16,6 +16,7 @@ public:
 	{
 		uint64_t at;
 		uint64_t end;
+		uint64_t file_end;
 		std::mutex mtx;
 		std::fstream file;
 	};
@@ -52,8 +53,8 @@ public:
 		HashMap* map;
 	};
 	
-	HashMap(std::string path_1, std::string path_2, uint32_t files);
-	HashMap(std::string path_1, std::string path_2, uint32_t files, bool createNew);
+	HashMap(std::string path_1, std::string path_2, uint32_t files, uint64_t alloc_size);
+	HashMap(std::string path_1, std::string path_2, uint32_t files, uint64_t alloc_size, bool createNew);
 	HashMap(const HashMap& other, const char* database);
 	~HashMap();
 
@@ -63,6 +64,7 @@ private:
 
 	Data* data;
 	std::atomic<int>* uses;
+	uint64_t alloc_size;
 	uint32_t files;
 };
 
