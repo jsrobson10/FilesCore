@@ -1,6 +1,6 @@
 
-#include "HashMap.hpp"
-#include "Util.hpp"
+#include "./HashMap.hpp"
+#include "../Util/Util.hpp"
 
 #include <cstring>
 
@@ -53,7 +53,7 @@ HashMap::Location::Location(HashMap& map, const uint8_t** ids, int idc)
 	}
 
 	SHA256_Final(hash, &ctx);
-	file_id = Util::get_net_ui(&hash[28]) % map.files;
+	file_id = Util::Net::get_ui(&hash[28]) % map.files;
 
 	uint8_t* hash_at = hash;
 	Data* data = &map.data[file_id];
@@ -91,7 +91,7 @@ HashMap::Location::Location(HashMap& map, const uint8_t** ids, int idc)
 				uint8_t pos_c[8];
 				data->file.read((char*)pos_c, 8);
 
-				uint64_t pos = Util::get_net_ul(pos_c);
+				uint64_t pos = Util::Net::get_ul(pos_c);
 				data->file.seekg(pos, std::ios::beg);
 				data->at = pos;
 
@@ -107,7 +107,7 @@ HashMap::Location::Location(HashMap& map, const uint8_t** ids, int idc)
 				uint8_t pos_c[8];
 				data->file.read((char*)pos_c, 8);
 
-				uint64_t pos = Util::get_net_ul(pos_c);
+				uint64_t pos = Util::Net::get_ul(pos_c);
 				data->file.seekg(pos, std::ios::beg);
 
 				uint8_t hash_c[32];
@@ -115,7 +115,7 @@ HashMap::Location::Location(HashMap& map, const uint8_t** ids, int idc)
 
 				// return and unlock the resource if the
 				// value has been found
-				if(Util::compare(hash_c, hash, 32))
+				if(Util::Bin::compare(hash_c, hash, 32) == 0)
 				{
 					data->at = pos + 32;
 					content_pos = data->at;
@@ -185,8 +185,8 @@ void HashMap::Location::create(uint64_t len)
 		uint64_t pointer_table = data->end;
 		uint64_t pointer_next = data->end + TABLE_SIZE;
 
-		Util::set_net_ul(pointer_table_c, pointer_table);
-		Util::set_net_ul(pointer_next_c, pointer_next);
+		Util::Net::set_ul(pointer_table_c, pointer_table);
+		Util::Net::set_ul(pointer_next_c, pointer_next);
 
 		data->file.read((char*)pointer_cur_c, 8);
 		data->file.seekg(-9, std::ios::cur);
@@ -212,7 +212,7 @@ void HashMap::Location::create(uint64_t len)
 		// get the current table entry hash value
 		// to calculate its new table position
 		uint8_t hash_cur[32];
-		uint64_t pointer_cur = Util::get_net_ul(pointer_cur_c);
+		uint64_t pointer_cur = Util::Net::get_ul(pointer_cur_c);
 		data->file.seekg(pointer_cur, std::ios::beg);
 		data->file.read((char*)hash_cur, 32);
 
@@ -222,7 +222,7 @@ void HashMap::Location::create(uint64_t len)
 		table_tag = 2;
 		
 		data->end += TABLE_SIZE + len + 32;
-		Util::set_net_ul(len_c, data->end);
+		Util::Net::set_ul(len_c, data->end);
 
 		// set both table entries
 		data->file.seekg(pointer_table + jump_cur, std::ios::beg);
@@ -262,9 +262,9 @@ void HashMap::Location::create(uint64_t len)
 		uint8_t len_c[8];
 		
 		data->end += len + 32;
-		Util::set_net_ul(len_c, data->end);
+		Util::Net::set_ul(len_c, data->end);
 
-		Util::set_net_ul(pointer_next_c, pointer_next);
+		Util::Net::set_ul(pointer_next_c, pointer_next);
 
 		table_tag = 2;
 
@@ -449,7 +449,7 @@ HashMap::HashMap(std::string path_1, std::string path_2, uint32_t files, uint64_
 		file.close();
 
 		uint8_t file_size_c[8];
-		Util::set_net_ul(file_size_c, TABLE_SIZE + 8);
+		Util::Net::set_ul(file_size_c, TABLE_SIZE + 8);
 
 		for(int i = 0; i < files; i++)
 		{
@@ -488,7 +488,7 @@ HashMap::HashMap(std::string path_1, std::string path_2, uint32_t files, uint64_
 
 		d->file.seekg(0, std::ios::beg);
 		d->file.read((char*)end_c, 8);
-		d->end = Util::get_net_ul(end_c);
+		d->end = Util::Net::get_ul(end_c);
 		d->file.seekg(0, std::ios::end);
 		d->file_end = d->file.tellg();
 		d->at = d->file_end;

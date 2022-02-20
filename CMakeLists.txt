@@ -9,3 +9,4 @@ file(GLOB_RECURSE SOURCES src/*.c*)
 add_executable(CryptoCore ${SOURCES})
 
 target_link_libraries(CryptoCore PUBLIC crypto pthread gmp jsoncpp atomic)
+
