@@ -40,6 +40,55 @@ size_t Util::Text::count_whitespace(const char* text, size_t len)
 	return found;
 }
 
+size_t Util::Text::count_whitespace(const std::string& text)
+{
+	return count_whitespace(text.c_str(), text.length());
+}
+
+uint64_t Util::Text::get_char_pos(char c, const char* text)
+{
+	char at = text[0];
+	uint64_t it = 0;
+
+	while(at != '\0')
+	{
+		if(at == c)
+		{
+			return it;
+		}
+
+		it++;
+		text++;
+		at = text[0];
+	}
+
+	return -1;
+}
+
+uint64_t Util::Text::get_char_pos(char c, const char* text, size_t len)
+{
+	const char* end = text + len;
+	uint64_t it = 0;
+
+	while(text < end)
+	{
+		if(text[0] == c)
+		{
+			return it;
+		}
+
+		text++;
+		it++;
+	}
+
+	return -1;
+}
+
+uint64_t Util::Text::get_char_pos(char c, const std::string& text)
+{
+	return get_char_pos(c, text.c_str(), text.length());
+}
+
 void Util::Text::to_upper(const char* in, char* out)
 {
 	char c = in[0];
@@ -180,6 +229,42 @@ void Util::Text::to_cased(const char* in, char* out, size_t len)
 	}
 }
 
+std::string Util::Text::to_upper(const std::string& text)
+{
+	size_t text_len = text.length();
+	char* text_out = new char[text_len];
+	to_upper(text.c_str(), text_out, text_len);
+
+	std::string str(text_out, text_len);
+
+	delete[] text_out;
+	return str;
+}
+
+std::string Util::Text::to_lower(const std::string& text)
+{
+	size_t text_len = text.length();
+	char* text_out = new char[text_len];
+	to_lower(text.c_str(), text_out, text_len);
+
+	std::string str(text_out, text_len);
+
+	delete[] text_out;
+	return str;
+}
+
+std::string Util::Text::to_cased(const std::string& text)
+{
+	size_t text_len = text.length();
+	char* text_out = new char[text_len];
+	to_cased(text.c_str(), text_out, text_len);
+
+	std::string str(text_out, text_len);
+
+	delete[] text_out;
+	return str;
+}
+
 template <class T>
 T* skip_whitespace_t(T* data)
 {
@@ -192,7 +277,7 @@ T* skip_whitespace_t(T* data)
 			break;
 		}
 
-		c = (data++)[0];
+		c = (++data)[0];
 	}
 
 	return data;
@@ -210,7 +295,7 @@ T* skip_until_whitespace_t(T* data)
 			break;
 		}
 
-		c = (data++)[0];
+		c = (++data)[0];
 	}
 
 	return data;

@@ -115,7 +115,7 @@ HashMap::Location::Location(HashMap& map, const uint8_t** ids, int idc)
 
 				// return and unlock the resource if the
 				// value has been found
-				if(Util::Bin::compare(hash_c, hash, 32) == 0)
+				if(memcmp(hash_c, hash, 32) == 0)
 				{
 					data->at = pos + 32;
 					content_pos = data->at;

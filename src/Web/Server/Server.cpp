@@ -103,64 +103,17 @@ void Web::Server::accept(int sockfd)
 {
 	Web::Client client;
 	client.sockfd = sockfd;
-	
-	char buff[1024];
-	char* at = buff;
-	char* next;
 
-	size_t i = 0;
-	size_t len;
-	
-	client.read_line(buff, sizeof(buff));
+	Web::Http::Request req;
+	req.read(client);
 
-	// get the first bit of the header, will be the request type
-	at = Util::Text::skip_whitespace(at);
-	next = Util::Text::skip_until_whitespace(at);
-	len = next - at - 1;
-
-	Util::Text::to_lower(at, at, len);
-
-	char req_type[1024];
-	memcpy(req_type, at, len);
-	req_type[len] = '\0';
-
-	// get the path
-	at = Util::Text::skip_whitespace(next);
-	next = Util::Text::skip_until_whitespace(at);
-	len = next - at - 1;
-
-	char path[1024];
-	memcpy(path, at, len);
-	path[len] = '\0';
-
-	// check that this is http/1.1
-	at = Util::Text::skip_whitespace(next);
-	next = Util::Text::skip_until_whitespace(at);
-	len = next - at - 1;
-
-	Util::Text::to_lower(at, at, len);
-	 
-	if(len != 8 || memcmp(at, "http/1.1", 8) != 0)
-	{
-		client.cleanup();
-		return;
-	}
-
-	std::cout << "will " << req_type << " to " << path << std::endl;
-
-	for(;;)
-	{
-		client.read_line(buff, sizeof(buff));
-		std::cout << i++ << ": " << buff << std::endl;
-
-		if(Util::Text::count_whitespace(buff) == 0)
-		{
-			break;
-		}
-	}
+	std::cout << "client connected with " << req.get_header("user-agent") << std::endl;
+	std::cout << "will " << req.method << " to " << req.path << std::endl;
 
 	Web::Http::Response res;
-	res.set_header("Foo", "Bar");
+	res.set_header("foo", "bar");
+	res.set_header("connection", "close");
+	res.set_body("Hello, client!");
 	res.write(client);
 }
 

@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <cstddef>
+#include <string>
 
 namespace Util
 {
@@ -17,23 +18,27 @@ namespace Util
 		void set_us(uint8_t* data, uint16_t value);
 	}
 
-	namespace Bin
-	{
-		int compare(const uint8_t* data1, const uint8_t* data2, size_t len);
-
-	};
-
 	namespace Text
 	{
 		size_t count_whitespace(const char* text);
+		size_t count_whitespace(const std::string& text);
 		size_t count_whitespace(const char* text, size_t len);
+
+		uint64_t get_char_pos(char c, const char* text);
+		uint64_t get_char_pos(char c, const std::string& text);
+		uint64_t get_char_pos(char c, const char* text, size_t len);
 
 		void to_upper(const char* in, char* out);
 		void to_lower(const char* in, char* out);
 		void to_cased(const char* in, char* out);
+
 		void to_upper(const char* in, char* out, size_t len);
 		void to_lower(const char* in, char* out, size_t len);
 		void to_cased(const char* in, char* out, size_t len);
+
+		std::string to_upper(const std::string& in);
+		std::string to_lower(const std::string& in);
+		std::string to_cased(const std::string& in);
 
 		char* skip_whitespace(char* data);
 		char* skip_until_whitespace(char* data);

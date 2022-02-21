@@ -12,6 +12,7 @@ namespace Web::Http
 	protected:
 
 		std::unordered_map<std::string, std::string> headers;
+		bool body_set = false;
 		std::string body;
 	
 		bool read_main(Web::Client& client);
@@ -24,16 +25,17 @@ namespace Web::Http
 
 		const std::string& get_header(const std::string& key);
 		const std::string& get_body();
+
+		void remove_header(const std::string& key);
+		void remove_body();
 	};
 
 	class Request : public Object
 	{
-	protected:
-
+	public:
+		
 		std::string path = "/";
 		std::string method = "GET";
-	
-	public:
 
 		bool read(Web::Client& client);
 		void write(Web::Client& client);
