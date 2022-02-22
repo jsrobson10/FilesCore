@@ -13,6 +13,8 @@ static void signal_handler(int sig)
 
 int main()
 {
+	signal(SIGPIPE, SIG_IGN);
+	signal(SIGABRT, signal_handler);
 	signal(SIGINT, signal_handler);
 	
 	Web::Server::init();

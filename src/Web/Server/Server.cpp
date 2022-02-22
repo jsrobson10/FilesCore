@@ -103,18 +103,35 @@ void Web::Server::accept(int sockfd)
 {
 	Web::Client client;
 	client.sockfd = sockfd;
+	bool running = true;
+	int it = 0;
 
-	Web::Http::Request req;
-	req.read(client);
+	while(running)
+	{
+		Web::Http::Request req;
+		
+		if(!req.read(client))
+		{
+			break;
+		}
+		
+		std::cout << "Loop " << ++it << std::endl;
 
-	std::cout << "client connected with " << req.get_header("user-agent") << std::endl;
-	std::cout << "will " << req.method << " to " << req.path << std::endl;
-
-	Web::Http::Response res;
-	res.set_header("foo", "bar");
-	res.set_header("connection", "close");
-	res.set_body("Hello, client!");
-	res.write(client);
+		if(Util::Text::to_lower(req.get_header("connection")) == "close")
+		{
+			running = false;
+		}
+	
+		std::cout << "client connected with " << req.get_header("user-agent") << std::endl;
+		std::cout << "will " << req.method << " to " << req.path << std::endl;
+	
+		Web::Http::Response res;
+		res.set_header("foo", "bar");
+		res.set_header("content-type", "text/html");
+		res.set_header("connection", "keep-alive");
+		res.set_body("<h1>Hello, client!</h1>");
+		res.write(client);
+	}
 }
 
 bool Web::Server::running()
