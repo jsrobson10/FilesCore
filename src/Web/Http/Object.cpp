@@ -4,14 +4,24 @@
 
 using namespace Web::Http;
 
-bool Object::read_main(Web::Client& client)
+Object::Object(Web::Client& client)
+{
+	this->client = &client;
+}
+
+Object::Object(Web::Client* client)
+{
+	this->client = client;
+}
+
+bool Object::read_main()
 {
 	char buff[1024*1024];
 	size_t total_len = 0;
 
 	for(;;)
 	{
-		size_t len = client.read_line(buff, sizeof(buff));
+		size_t len = client->read_line(buff, sizeof(buff));
 
 		if(len == 0 || Util::Text::count_whitespace(buff) == len)
 		{
@@ -77,46 +87,36 @@ bool Object::read_main(Web::Client& client)
 		set_header(key, data);
 	}
 
+
+	return true;
+}
+
+void Object::write_main()
+{
+	for(auto& header : headers)
+	{
+		client->write(header.first.c_str());
+		client->write(": ");
+		client->write(header.second.c_str());
+		client->write("\r\n");
+	}
+
+	client->write("\r\n");
+}
+
+size_t Object::get_body_len()
+{
 	std::string body_len_str = get_header("content-length");
 
 	try
 	{
-		size_t body_len = std::stoul(body_len_str);
-
-		if(body_len > sizeof(buff))
-		{
-			return false;
-		}
-
-		client.read(buff, body_len);
-		body = std::string(buff, body_len);
+		return std::stoul(body_len_str);
 	}
 
 	catch(std::out_of_range& e) {}
 	catch(std::invalid_argument& e) {}
 
-	return true;
-}
-
-void Object::write_main(Web::Client& client)
-{
-	for(auto& header : headers)
-	{
-		client.write(header.first.c_str());
-		client.write(": ");
-		client.write(header.second.c_str());
-		client.write("\r\n");
-	}
-
-	client.write("\r\n");
-	client.write(body.c_str(), body.length());
-}
-
-void Object::set_body(const std::string& body)
-{
-	set_header("content-length", std::to_string(body.length()));
-
-	this->body = body;
+	return 0;
 }
 
 void Object::set_header(const std::string& key, const std::string& value)
@@ -124,24 +124,13 @@ void Object::set_header(const std::string& key, const std::string& value)
 	headers[Util::Text::to_cased(key)] = value;
 }
 
-const std::string& Object::get_body()
-{
-	return body;
-}
-
 const std::string& Object::get_header(const std::string& key)
 {
 	return headers[Util::Text::to_cased(key)];
-}
-
-void Object::remove_body()
-{
-	remove_header("content-length");
-
-	body = "";
 }
 
 void Object::remove_header(const std::string& key)
 {
 	headers.erase(Util::Text::to_cased(key));
 }
+

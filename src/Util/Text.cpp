@@ -1,6 +1,8 @@
 
 #include "./Util.hpp"
 
+#include <sstream>
+
 size_t Util::Text::count_whitespace(const char* text)
 {
 	char c = text[0];
@@ -301,6 +303,38 @@ T* skip_until_whitespace_t(T* data)
 	return data;
 }
 
+template <class T>
+T* get_between_t(char c, T* text, T*& out, size_t& len)
+{
+	char at = text[0];
+
+	while(at == c && at != '\0')
+	{
+		at = (++text)[0];
+	}
+
+	out = text;
+
+	while(at != c && at != '\0')
+	{
+		at = (++text)[0];
+	}
+
+	len = text - out;
+
+	return text;
+}
+		
+char* Util::Text::get_between(char c, char* text, char*& out, size_t& len)
+{
+	return get_between_t<char>(c, text, out, len);
+}
+
+const char* Util::Text::get_between(char c, const char* text, const char*& out, size_t& len)
+{
+	return get_between_t<const char>(c, text, out, len);
+}
+
 char* Util::Text::skip_whitespace(char* data)
 {
 	return skip_whitespace_t<char>(data);
@@ -321,4 +355,22 @@ const char* Util::Text::skip_until_whitespace(const char* data)
 	return skip_until_whitespace_t<const char>(data);
 }
 
+std::string Util::Text::xss_safe(const std::string& str)
+{
+	std::stringstream buf;
+
+	for(size_t i = 0; i < str.length(); i++)
+	{
+		char c = str[i];
+
+		if(c == '&')       buf << "&amp";
+		else if(c == '<')  buf << "&lt";
+		else if(c == '>')  buf << "&gt";
+		else if(c == '"')  buf << "&quot";
+		else if(c == '\'') buf << "&#x27";
+		else               buf << c;
+	}
+
+	return buf.str();
+}
 

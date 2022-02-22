@@ -28,6 +28,9 @@ namespace Util
 		uint64_t get_char_pos(char c, const std::string& text);
 		uint64_t get_char_pos(char c, const char* text, size_t len);
 
+		char* get_between(char c, char* text, char*& out, size_t& len);
+		const char* get_between(char c, const char* text, const char*& out, size_t& len);
+
 		void to_upper(const char* in, char* out);
 		void to_lower(const char* in, char* out);
 		void to_cased(const char* in, char* out);
@@ -45,6 +48,8 @@ namespace Util
 		
 		const char* skip_whitespace(const char* data);
 		const char* skip_until_whitespace(const char* data);
+
+		std::string xss_safe(const std::string& str);
 	};
 };
 

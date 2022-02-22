@@ -4,6 +4,7 @@
 #include "../../Util/Util.hpp"
 #include "../Client/Client.hpp"
 #include "../Http/Http.hpp"
+#include "../Handler/Handler.hpp"
 
 #include <list>
 #include <mutex>
@@ -104,33 +105,25 @@ void Web::Server::accept(int sockfd)
 	Web::Client client;
 	client.sockfd = sockfd;
 	bool running = true;
-	int it = 0;
 
 	while(running)
 	{
-		Web::Http::Request req;
+		Web::Http::Request req(client);
 		
-		if(!req.read(client))
+		if(!req.read())
 		{
 			break;
 		}
 		
-		std::cout << "Loop " << ++it << std::endl;
-
 		if(Util::Text::to_lower(req.get_header("connection")) == "close")
 		{
 			running = false;
 		}
-	
-		std::cout << "client connected with " << req.get_header("user-agent") << std::endl;
-		std::cout << "will " << req.method << " to " << req.path << std::endl;
-	
-		Web::Http::Response res;
-		res.set_header("foo", "bar");
-		res.set_header("content-type", "text/html");
-		res.set_header("connection", "keep-alive");
-		res.set_body("<h1>Hello, client!</h1>");
-		res.write(client);
+
+		if(!Web::Handler::handle(req))
+		{
+			running = false;
+		}
 	}
 }
 
